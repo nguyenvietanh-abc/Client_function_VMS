@@ -142,32 +142,19 @@ class VMSClientGUI(ctk.CTk):
         url = f"http://{self.gateway_ip}:{self.gateway_port}/api/command"
 
         try:
-            r = requests.post(url, json=data, timeout=12)
-            self.last_mid = r.json().get("mid")
-            self.is_polling = True
-            threading.Thread(target=self.poll_response, daemon=True).start()
+            r = requests.post(url, json=data, timeout=30) 
+            result = r.json()
+
+            self.response_box.insert(
+                "end",
+                f"[{datetime.now().strftime('%H:%M:%S')}] [RESPONSE] {result}\n"
+            )
+            print("RAW:", r.text)
+
         except Exception as e:
-            self.response_box.insert("end", f"[Lỗi] {str(e)}\n")
+            self.response_box.insert("end", f"Lỗi: {str(e)}\n")
 
-    def poll_response(self):
-        url = f"http://{self.gateway_ip}:{self.gateway_port}/api/command/response/{self.last_mid}"
-        while self.is_polling and self.last_mid:
-            try:
-                r = requests.get(url, timeout=5)
-                if r.status_code == 200:
-                    data = r.json()
-                    if data.get("status") == "completed":
-                        self.after(0, lambda resp=data.get("response"): self.show_response(resp))
-                        self.is_polling = False
-                        break
-            except:
-                pass
-            time.sleep(0.4)
-
-    def show_response(self, response):
-        self.response_box.delete("1.0", "end")
-        self.response_box.insert("end", json.dumps(response, indent=2, ensure_ascii=False))
-
+    
 if __name__ == "__main__":
     app = VMSClientGUI()
     app.mainloop()
